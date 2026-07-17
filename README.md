@@ -32,8 +32,12 @@ devcontainer 内から作成された git worktree は gitdir がコンテナ内
 
 ## 設定
 
-`~/.config/dwt/config`（`XDG_CONFIG_HOME` があればそちらを優先）に `key = value`
-形式で記述する。`#` 始まりの行はコメント。
+設定ファイルと環境変数の両方で指定でき、**環境変数が優先**される。
+
+環境変数: `DWT_CONTAINER` / `DWT_WORKDIR` / `DWT_ALLOWED`
+
+設定ファイルは `~/.config/dwt/config`（`XDG_CONFIG_HOME` があればそちらを優先）に
+`key = value` 形式で記述する。`#` 始まりの行はコメント。
 
 ```
 container = myproj-wt-{n}-app-1
@@ -41,11 +45,11 @@ workdir = /workspaces/worktree-{n}
 # allowed = git,uv,python,npm
 ```
 
-| キー | 必須 | 説明 |
-|---|---|---|
-| `container` | ✓ | コンテナ名テンプレート。`{n}` が第1引数の N に置換される |
-| `workdir` | ✓ | コンテナ内 working directory テンプレート。同上 |
-| `allowed` | | コンテナへ渡すことを許可するコマンドのカンマ区切りリスト。デフォルト `git,uv,python,npm` |
+| キー | 環境変数 | 必須 | 説明 |
+|---|---|---|---|
+| `container` | `DWT_CONTAINER` | ✓ | コンテナ名テンプレート。`{n}` が第1引数の N に置換される |
+| `workdir` | `DWT_WORKDIR` | ✓ | コンテナ内 working directory テンプレート。同上 |
+| `allowed` | `DWT_ALLOWED` | | コンテナへ渡すことを許可するコマンドのカンマ区切りリスト。デフォルト `git,uv,python,npm` |
 
 ## コマンド制限
 

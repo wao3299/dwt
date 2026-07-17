@@ -31,29 +31,44 @@ fn load_config() -> Result<Config, String> {
     let base = std::env::var("XDG_CONFIG_HOME")
         .unwrap_or_else(|_| format!("{}/.config", std::env::var("HOME").unwrap_or_default()));
     let path = format!("{base}/dwt/config");
-    let text = std::fs::read_to_string(&path)
-        .map_err(|e| format!("dwt: 設定ファイル {path} を読めない: {e}"))?;
     let mut container = None;
     let mut workdir = None;
     let mut allowed = DEFAULT_ALLOWED.to_string();
-    for line in text.lines() {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
+    match std::fs::read_to_string(&path) {
+        Ok(text) => {
+            for line in text.lines() {
+                let line = line.trim();
+                if line.is_empty() || line.starts_with('#') {
+                    continue;
+                }
+                let Some((key, value)) = line.split_once('=') else {
+                    continue;
+                };
+                match key.trim() {
+                    "container" => container = Some(value.trim().to_string()),
+                    "workdir" => workdir = Some(value.trim().to_string()),
+                    "allowed" => allowed = value.trim().to_string(),
+                    _ => {}
+                }
+            }
         }
-        let Some((key, value)) = line.split_once('=') else {
-            continue;
-        };
-        match key.trim() {
-            "container" => container = Some(value.trim().to_string()),
-            "workdir" => workdir = Some(value.trim().to_string()),
-            "allowed" => allowed = value.trim().to_string(),
-            _ => {}
-        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => return Err(format!("dwt: 設定ファイル {path} を読めない: {e}")),
     }
+    if let Ok(v) = std::env::var("DWT_CONTAINER") {
+        container = Some(v);
+    }
+    if let Ok(v) = std::env::var("DWT_WORKDIR") {
+        workdir = Some(v);
+    }
+    if let Ok(v) = std::env::var("DWT_ALLOWED") {
+        allowed = v;
+    }
+    let missing =
+        |key: &str, var: &str| format!("dwt: {key} が未設定 (環境変数 {var} か {path} で指定する)");
     Ok(Config {
-        container: container.ok_or(format!("dwt: {path} に container が未設定"))?,
-        workdir: workdir.ok_or(format!("dwt: {path} に workdir が未設定"))?,
+        container: container.ok_or_else(|| missing("container", "DWT_CONTAINER"))?,
+        workdir: workdir.ok_or_else(|| missing("workdir", "DWT_WORKDIR"))?,
         allowed: allowed.split(',').map(|s| s.trim().to_string()).collect(),
     })
 }
