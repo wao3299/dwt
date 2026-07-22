@@ -1,3 +1,4 @@
+use std::io::IsTerminal;
 use std::os::unix::process::CommandExt;
 use std::process::Command;
 
@@ -12,12 +13,17 @@ struct Config {
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let err = match load_config().and_then(|cfg| parse(&cfg, &args)) {
-        Ok((workdir, container, cmd)) => Command::new("docker")
-            .args(["exec", "-w"])
-            .arg(workdir)
-            .arg(container)
-            .args(cmd)
-            .exec(),
+        Ok((workdir, container, cmd)) => {
+            let tty = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
+            Command::new("docker")
+                .arg("exec")
+                .arg(if tty { "-it" } else { "-i" })
+                .arg("-w")
+                .arg(workdir)
+                .arg(container)
+                .args(cmd)
+                .exec()
+        }
         Err(msg) => {
             eprintln!("{msg}");
             std::process::exit(2);

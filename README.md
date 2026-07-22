@@ -10,8 +10,11 @@ dwt <N> <command> [args...]
 は設定ファイルのテンプレートを使って以下に展開される（プロセスは exec で置き換え）:
 
 ```
-docker exec -w <workdir の {n} を N に置換> <container の {n} を N に置換> <command> [args...]
+docker exec <-it|-i> -w <workdir の {n} を N に置換> <container の {n} を N に置換> <command> [args...]
 ```
+
+TTY は自動判定される: stdin と stdout が両方とも端末なら `-it`（対話実行）、
+そうでなければ `-i` のみ（パイプ・リダイレクトでの stdin 転送）。
 
 例（`container = myproj-wt-{n}-app-1`, `workdir = /workspaces/worktree-{n}` の場合）:
 
