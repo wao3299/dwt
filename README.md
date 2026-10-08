@@ -33,11 +33,15 @@ devcontainer 内から作成された git worktree は gitdir がコンテナ内
 `dwt` はインターフェースを固定することでこの揺れをなくし、
 エージェント側は `Bash(dwt:*)` のような 1 ルールで安全に自動許可できるようにする。
 
+逆にホストから作成した worktree は gitdir がホスト側パスを指すため、コンテナ内の git
+（とそれに依存する pre-commit 等）が動かない。`path_map` を設定すると、dwt がこれを
+検出してコンテナ側パスへ読み替えた `GIT_DIR` / `GIT_WORK_TREE` を渡す（後述）。
+
 ## 設定
 
 設定ファイルと環境変数の両方で指定でき、**環境変数が優先**される。
 
-環境変数: `DWT_CONTAINER` / `DWT_WORKDIR` / `DWT_ALLOWED`
+環境変数: `DWT_CONTAINER` / `DWT_WORKDIR` / `DWT_ALLOWED` / `DWT_PATH_MAP`
 
 設定ファイルは `~/.config/dwt/config`（`XDG_CONFIG_HOME` があればそちらを優先）に
 `key = value` 形式で記述する。`#` 始まりの行はコメント。
@@ -46,6 +50,7 @@ devcontainer 内から作成された git worktree は gitdir がコンテナ内
 container = myproj-wt-{n}-app-1
 workdir = /workspaces/worktree-{n}
 # allowed = git,uv,python,npm
+# path_map = /Users/me/proj=/workspaces
 ```
 
 | キー | 環境変数 | 必須 | 説明 |
@@ -53,6 +58,19 @@ workdir = /workspaces/worktree-{n}
 | `container` | `DWT_CONTAINER` | ✓ | コンテナ名テンプレート。`{n}` が第1引数の N に置換される |
 | `workdir` | `DWT_WORKDIR` | ✓ | コンテナ内 working directory テンプレート。同上 |
 | `allowed` | `DWT_ALLOWED` | | コンテナへ渡すことを許可するコマンドのカンマ区切りリスト。デフォルト `git,uv,python,npm` |
+| `path_map` | `DWT_PATH_MAP` | | `<ホスト側パス>=<コンテナ側パス>`。bind mount の対応を指定する |
+
+### path_map
+
+`path_map` を指定すると、dwt は workdir をホスト側パスに読み替えて worktree の `.git` を読む。
+gitdir がホスト側パス配下を指していれば、コンテナ側パスに読み替えて以下を付与する:
+
+```
+docker exec ... -e GIT_DIR=<読み替えた gitdir> -e GIT_WORK_TREE=<workdir> <container> ...
+```
+
+gitdir がコンテナ側パスを指している（コンテナ内で作成した worktree）場合や、
+`.git` を読めない場合は何も付与しない。
 
 ## コマンド制限
 
